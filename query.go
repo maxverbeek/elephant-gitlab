@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
@@ -12,6 +13,56 @@ import (
 func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	if db == nil {
 		return nil
+	}
+
+	if idx := strings.Index(query, "!"); idx >= 0 {
+		projectQuery := query[:idx]
+		mrQuery := query[idx+1:]
+
+		projects := queryProjects(projectQuery)
+		paths := make([]string, len(projects))
+		for i, p := range projects {
+			paths[i] = p.PathWithNamespace
+		}
+
+		mrs := queryMergeRequestsForProjects(paths, mrQuery)
+		var entries []*pb.QueryResponse_Item
+		for _, mr := range mrs {
+			identifier := fmt.Sprintf("mr:%d", mr.ID)
+			subtext := fmt.Sprintf("!%d · %s · %s", mr.IID, mr.ProjectPath, mr.Role)
+
+			entry := &pb.QueryResponse_Item{
+				Identifier: identifier,
+				Text:       mr.Title,
+				Subtext:    subtext,
+				Icon:       config.Icon,
+				Provider:   Name,
+				Type:       pb.QueryResponse_REGULAR,
+				Actions:    []string{"open", "copy_url"},
+			}
+
+			if mrQuery != "" {
+				score, pos, start := common.FuzzyScore(mrQuery, mr.Title, exact)
+				entry.Score = score
+				entry.Fuzzyinfo = &pb.QueryResponse_Item_FuzzyInfo{
+					Start:     start,
+					Field:     "text",
+					Positions: pos,
+				}
+			}
+
+			if config.History {
+				usageScore := h.CalcUsageScore(query, identifier)
+				if usageScore != 0 {
+					entry.State = append(entry.State, history.StateHistory)
+				}
+				entry.Score += usageScore
+			}
+
+			entries = append(entries, entry)
+		}
+
+		return entries
 	}
 
 	var entries []*pb.QueryResponse_Item
