@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	_ "github.com/mattn/go-sqlite3"
@@ -180,10 +181,17 @@ func queryProjects(query string) []dbProject {
 	var err error
 
 	if query != "" {
-		like := "%" + query + "%"
+		words := strings.Fields(query)
+		where := make([]string, len(words))
+		args := make([]any, 0, len(words)*2)
+		for i, w := range words {
+			like := "%" + w + "%"
+			where[i] = "(path_with_namespace LIKE ? OR name LIKE ?)"
+			args = append(args, like, like)
+		}
 		rows, err = db.Query(`SELECT id, path_with_namespace, name, description, web_url, namespace, last_activity_at
-			FROM projects WHERE path_with_namespace LIKE ? OR name LIKE ?
-			ORDER BY last_activity_at DESC LIMIT 200`, like, like)
+			FROM projects WHERE `+strings.Join(where, " AND ")+`
+			ORDER BY last_activity_at DESC LIMIT 200`, args...)
 	} else {
 		rows, err = db.Query(`SELECT id, path_with_namespace, name, description, web_url, namespace, last_activity_at
 			FROM projects ORDER BY last_activity_at DESC LIMIT 50`)
@@ -212,10 +220,17 @@ func queryMergeRequests(query string) []dbMergeRequest {
 	var err error
 
 	if query != "" {
-		like := "%" + query + "%"
+		words := strings.Fields(query)
+		where := make([]string, len(words))
+		args := make([]any, 0, len(words)*3)
+		for i, w := range words {
+			like := "%" + w + "%"
+			where[i] = "(title LIKE ? OR project_path LIKE ? OR source_branch LIKE ?)"
+			args = append(args, like, like, like)
+		}
 		rows, err = db.Query(`SELECT id, iid, title, description, web_url, state, source_branch, target_branch, project_path, author, role, created_at
-			FROM merge_requests WHERE title LIKE ? OR project_path LIKE ? OR source_branch LIKE ?
-			ORDER BY created_at DESC LIMIT 200`, like, like, like)
+			FROM merge_requests WHERE `+strings.Join(where, " AND ")+`
+			ORDER BY created_at DESC LIMIT 200`, args...)
 	} else {
 		rows, err = db.Query(`SELECT id, iid, title, description, web_url, state, source_branch, target_branch, project_path, author, role, created_at
 			FROM merge_requests ORDER BY created_at DESC LIMIT 50`)
