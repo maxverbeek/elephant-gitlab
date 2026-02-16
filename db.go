@@ -215,45 +215,6 @@ func queryProjects(query string) []dbProject {
 	return result
 }
 
-func queryMergeRequests(query string) []dbMergeRequest {
-	var rows *sql.Rows
-	var err error
-
-	if query != "" {
-		words := strings.Fields(query)
-		where := make([]string, len(words))
-		args := make([]any, 0, len(words)*3)
-		for i, w := range words {
-			like := "%" + w + "%"
-			where[i] = "(title LIKE ? OR project_path LIKE ? OR source_branch LIKE ?)"
-			args = append(args, like, like, like)
-		}
-		rows, err = db.Query(`SELECT id, iid, title, description, web_url, state, source_branch, target_branch, project_path, author, role, created_at
-			FROM merge_requests WHERE `+strings.Join(where, " AND ")+`
-			ORDER BY created_at DESC LIMIT 200`, args...)
-	} else {
-		rows, err = db.Query(`SELECT id, iid, title, description, web_url, state, source_branch, target_branch, project_path, author, role, created_at
-			FROM merge_requests ORDER BY created_at DESC LIMIT 50`)
-	}
-
-	if err != nil {
-		slog.Error(Name, "querymergerequests", err)
-		return nil
-	}
-	defer rows.Close()
-
-	var result []dbMergeRequest
-	for rows.Next() {
-		var mr dbMergeRequest
-		if err := rows.Scan(&mr.ID, &mr.IID, &mr.Title, &mr.Description, &mr.WebURL, &mr.State,
-			&mr.SourceBranch, &mr.TargetBranch, &mr.ProjectPath, &mr.Author, &mr.Role, &mr.CreatedAt); err != nil {
-			continue
-		}
-		result = append(result, mr)
-	}
-
-	return result
-}
 
 func queryMergeRequestsForProjects(projectPaths []string, query string) []dbMergeRequest {
 	if len(projectPaths) == 0 {
