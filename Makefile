@@ -4,7 +4,7 @@ PLUGIN_NAME = gitlab.so
 .PHONY: build dev install clean
 
 build:
-	go build $(GO_BUILD_FLAGS) -o $(PLUGIN_NAME) .
+	go build $(GO_BUILD_FLAGS) -o $(PLUGIN_NAME) ./src
 
 dev: build
 	mkdir -p /tmp/elephant/providers

@@ -27,7 +27,7 @@ func Available() bool {
 	return true
 }
 
-func Setup() {
+func LoadConfig() {
 	config = &Config{
 		Config: common.Config{
 			Icon:     "gitlab",
@@ -43,6 +43,10 @@ func Setup() {
 	}
 
 	common.LoadConfig(Name, config)
+}
+
+func Setup() {
+	LoadConfig()
 
 	if config.NamePretty != "" {
 		NamePretty = config.NamePretty
@@ -131,8 +135,11 @@ func backgroundRefresh() {
 	}
 }
 
-func PrintDoc() {
-	fmt.Println(readme)
+func PrintDoc(write bool) {
+	if !write {
+		fmt.Println(readme)
+		fmt.Println()
+	}
 }
 
 func Icon() string {
