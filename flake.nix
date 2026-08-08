@@ -37,6 +37,14 @@
               runHook postBuild
             '';
 
+            # Upstream's checkPhase relies on go-hooks that aren't in scope here
+            # (it fails with "getGoDirs: command not found"), so run our tests directly.
+            checkPhase = ''
+              runHook preCheck
+              go test ./internal/providers/gitlab
+              runHook postCheck
+            '';
+
             installPhase = ''
               runHook preInstall
               mkdir -p $out/lib/elephant/providers
@@ -46,6 +54,9 @@
           });
         }
       );
+
+      # Package build has doCheck = true, so this runs the Go tests too.
+      checks = forAllSystems (system: { default = self.packages.${system}.default; });
 
       devShells = forAllSystems (
         system:
