@@ -2,7 +2,10 @@
   description = "GitLab provider plugin for Elephant";
 
   inputs = {
-    elephant.url = "github:abenz1267/elephant/v2.20.2";
+    # Track the branch, not a tag: elephant's Go plugin ABI must match its
+    # toolchain exactly, and nixconfig overrides this input to follow the
+    # branch anyway. Pinning here only made CI test a build we never run.
+    elephant.url = "github:abenz1267/elephant";
     nixpkgs.follows = "elephant/nixpkgs";
   };
 
