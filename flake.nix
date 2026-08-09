@@ -2,11 +2,9 @@
   description = "GitLab provider plugin for Elephant";
 
   inputs = {
-    # Track the branch, not a tag: elephant's Go plugin ABI must match its
-    # toolchain exactly, and nixconfig overrides this input to follow the
-    # branch anyway. Pinning here only made CI test a build we never run.
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
     elephant.url = "github:abenz1267/elephant";
-    nixpkgs.follows = "elephant/nixpkgs";
+    elephant.inputs.nixpkgs.follows = "nixpkgs";
   };
 
   outputs =
