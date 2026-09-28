@@ -9,7 +9,24 @@ import (
 	"github.com/abenz1267/elephant/v2/pkg/common"
 	"github.com/abenz1267/elephant/v2/pkg/common/history"
 	"github.com/abenz1267/elephant/v2/pkg/pb/pb"
+	"github.com/junegunn/fzf/src/algo"
 )
+
+// fuzzyScore adapts common.FuzzyScore to plain strings, normalising the
+// pattern the same way elephant's query handler does.
+func fuzzyScore(pattern, target string, exact bool) (int32, []int32, int32) {
+	if !exact {
+		pattern = strings.ToLower(pattern)
+	}
+	score, pos, start := common.FuzzyScore(algo.NormalizeRunes([]rune(pattern)), target, exact, nil)
+	var positions []int32
+	if pos != nil {
+		for _, p := range *pos {
+			positions = append(positions, int32(p))
+		}
+	}
+	return score, positions, start
+}
 
 // multiWordFuzzyScore scores each word in the query independently against the
 // target and sums the results. Additional occurrences of a word in the target
@@ -19,7 +36,7 @@ import (
 func multiWordFuzzyScore(query, target string, exact bool) (int32, []int32, int32) {
 	words := strings.Fields(query)
 	if len(words) <= 1 {
-		return common.FuzzyScore(query, target, exact)
+		return fuzzyScore(query, target, exact)
 	}
 
 	var totalScore int32
@@ -29,7 +46,7 @@ func multiWordFuzzyScore(query, target string, exact bool) (int32, []int32, int3
 	lowerTarget := strings.ToLower(target)
 
 	for _, word := range words {
-		score, pos, start := common.FuzzyScore(word, target, exact)
+		score, pos, start := fuzzyScore(word, target, exact)
 		totalScore += score
 		allPositions = append(allPositions, pos...)
 		if minStart < 0 || (start >= 0 && start < minStart) {
