@@ -72,7 +72,7 @@ func main() {
 		case "State":
 			_ = s.(func(string) *pb.ProviderStateResponse)
 		case "Query":
-			_ = s.(func(net.Conn, string, bool, bool, uint8) []*pb.QueryResponse_Item)
+			_ = s.(func(net.Conn, string, []rune, bool, bool, uint8) []*pb.QueryResponse_Item)
 		case "Activate":
 			_ = s.(func(bool, string, string, string, string, uint8, net.Conn))
 		}

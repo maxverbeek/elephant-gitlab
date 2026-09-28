@@ -165,7 +165,7 @@ func TestQuery_ProjectRanking(t *testing.T) {
 	// "res infra" through the full Query path should rank
 	// researchable-infrastructure (name matches both words) above
 	// heroku-vsv-infrastructure (name only matches "infra").
-	results := Query(nil, "res infra", false, false, 0)
+	results := Query(nil, "res infra", nil, false, false, 0)
 
 	if len(results) == 0 {
 		t.Fatal("expected project results, got none")
@@ -208,7 +208,7 @@ func TestDrillDown_BestProject(t *testing.T) {
 	// "res infra!" should drill into the best-matching project for "res infra",
 	// which is "researchable/general/researchable-infrastructure" (name contains
 	// both words), and return only its MRs.
-	results := Query(nil, "res infra!", false, false, 0)
+	results := Query(nil, "res infra!", nil, false, false, 0)
 
 	if len(results) == 0 {
 		t.Fatal("expected MR results from drill-down, got none")
@@ -230,7 +230,7 @@ func TestDrillDown_WithMRQuery(t *testing.T) {
 
 	// "res infra!retry" should drill into researchable-infrastructure and
 	// filter MRs to those matching "retry".
-	results := Query(nil, "res infra!retry", false, false, 0)
+	results := Query(nil, "res infra!retry", nil, false, false, 0)
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(results))
@@ -245,7 +245,7 @@ func TestDrillDown_ByIID(t *testing.T) {
 	setupTestDB(t)
 
 	// "res infra!620" should match MR with IID 620
-	results := Query(nil, "res infra!620", false, false, 0)
+	results := Query(nil, "res infra!620", nil, false, false, 0)
 
 	if len(results) != 1 {
 		t.Fatalf("expected 1 result, got %d", len(results))

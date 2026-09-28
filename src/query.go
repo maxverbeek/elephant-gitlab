@@ -76,7 +76,7 @@ func scoreProject(query string, p dbProject, exact bool) int32 {
 	return pathScore + nameScore*2
 }
 
-func Query(conn net.Conn, query string, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
+func Query(conn net.Conn, query string, _ []rune, _ bool, exact bool, _ uint8) []*pb.QueryResponse_Item {
 	if db == nil {
 		return nil
 	}
