@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"fmt"
 	"log/slog"
+	"net/url"
+	"sync"
 	"time"
 
 	"github.com/abenz1267/elephant/v2/pkg/common"
@@ -21,6 +23,7 @@ var (
 	client     *gitlabClient
 	userID     int64
 	h          *history.History
+	syncMu     sync.Mutex
 )
 
 func Available() bool {
@@ -34,7 +37,6 @@ func LoadConfig() {
 			MinScore: 20,
 		},
 		GitLabURL:       "https://gitlab.com",
-		PATFile:         "~/.gitlab_pat",
 		RefreshInterval: 15,
 		MaxProjects:     1000,
 		MembershipOnly:  true,
@@ -54,34 +56,51 @@ func Setup() {
 
 	h = history.Load(Name)
 
-	pat := readPAT(config.PATFile)
-	if pat == "" {
-		slog.Error(Name, "setup", "no PAT found, provider will serve cached data only")
-	}
-
 	if err := openDB(); err != nil {
 		slog.Error(Name, "setup", err)
 		return
 	}
 
-	if pat != "" {
-		client = newGitLabClient(config.GitLabURL, pat)
+	go syncAll()
+	go backgroundRefresh()
+}
 
-		user, err := client.getCurrentUser()
-		if err != nil {
-			slog.Error(Name, "setup", fmt.Sprintf("failed to get current user: %v", err))
-		} else {
-			userID = user.ID
-			slog.Info(Name, "user", user.Username)
-		}
-
-		go syncAll()
-		go backgroundRefresh()
+// refreshClient re-reads the token and rebuilds the client when it was rotated.
+func refreshClient() bool {
+	u, err := url.Parse(config.GitLabURL)
+	if err != nil || u.Hostname() == "" {
+		slog.Error(Name, "token", fmt.Sprintf("invalid gitlab_url %q", config.GitLabURL))
+		return false
 	}
+
+	pat, err := lookupToken(u.Hostname())
+	if err != nil {
+		slog.Error(Name, "token", err)
+		return false
+	}
+
+	if client != nil && client.pat == pat {
+		return true
+	}
+
+	client = newGitLabClient(config.GitLabURL, pat)
+
+	user, err := client.getCurrentUser()
+	if err != nil {
+		slog.Error(Name, "setup", fmt.Sprintf("failed to get current user: %v", err))
+	} else {
+		userID = user.ID
+		slog.Info(Name, "user", user.Username)
+	}
+
+	return true
 }
 
 func syncAll() {
-	if client == nil {
+	syncMu.Lock()
+	defer syncMu.Unlock()
+
+	if !refreshClient() {
 		return
 	}
 

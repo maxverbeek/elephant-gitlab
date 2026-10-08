@@ -9,11 +9,8 @@ Results are cached in a local SQLite database for fast, offline-capable search.
 Create `~/.config/elephant/gitlab.toml`:
 
 ```toml
-# Base URL of your GitLab instance
+# Base URL of your GitLab instance (its host selects the Secret Service item)
 gitlab_url = "https://gitlab.com"
-
-# Path to a file containing your GitLab Personal Access Token
-pat_file = "~/.config/elephant/.gitlab_pat"
 
 # Minutes between background API refreshes
 refresh_interval = 15
@@ -33,12 +30,13 @@ command = "xdg-open"
 
 ## Authentication
 
-Create a GitLab Personal Access Token with `read_api` scope and save it to the file referenced by `pat_file`:
+The token is read from the freedesktop Secret Service (default collection) from the item with exactly the attributes `service=gitlab` and `host=<host of gitlab_url>`:
 
 ```sh
-echo "glpat-xxxxxxxxxxxxxxxxxxxx" > ~/.config/elephant/.gitlab_pat
-chmod 600 ~/.config/elephant/.gitlab_pat
+secret-tool store --label="GitLab PAT" service gitlab host gitlab.com
 ```
+
+The token needs `read_api` scope. The plugin only reads the item, and looks it up again on every refresh, so a rotated token is picked up without restarting elephant. If the lookup fails (missing or ambiguous item, locked and not unlocked, no secret service), the error is logged and cached data is served until the next refresh.
 
 ## Actions
 
